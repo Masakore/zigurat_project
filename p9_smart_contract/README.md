@@ -1,6 +1,6 @@
 Multi-tenant decentralized loan contract for Blockchain Global Master M9 End Project
 -----
-**This project is on [my github](https://github.com/Masakore/zigurat_project)**
+**This project is on [my github](https://github.com/Masakore/zigurat_project/tree/master/p9_smart_contract)**
 
 ## Summary
  * Lenders can deposit any amount above 1 ether and earn annual 10% interest.
