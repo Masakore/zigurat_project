@@ -53,7 +53,7 @@ export default function Balance(props) {
     floatBalance = parseFloat(etherBalance);
   }
 
-  let displayBalance = floatBalance.toFixed(4);
+  let displayBalance = floatBalance.toFixed(4) + " ETH";
 
   const price = props.price || props.dollarMultiplier;
 

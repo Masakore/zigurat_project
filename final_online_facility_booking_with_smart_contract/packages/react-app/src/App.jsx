@@ -21,7 +21,7 @@ import {
 import { useEventListener } from "eth-hooks/events/useEventListener";
 import { useExchangeEthPrice } from "eth-hooks/dapps/dex";
 // import Hints from "./Hints";
-import { ExampleUI, Hints, Subgraph } from "./views";
+import { BookingUI, AdminUI, Hints, Subgraph } from "./views";
 
 // contracts
 import deployedContracts from "./contracts/hardhat_contracts.json";
@@ -165,6 +165,9 @@ const web3Modal = new Web3Modal({
   },
 });
 
+
+export const OwnerContext = React.createContext();
+
 function App(props) {
   const mainnetProvider =
     poktMainnetProvider && poktMainnetProvider._isProvider
@@ -248,14 +251,42 @@ function App(props) {
   const myMainnetDAIBalance = useContractReader(mainnetContracts, "DAI", "balanceOf", [
     "0x34aA3F359A9D614239015126635CE7732c18fDF3",
   ]);
-
-  // keep track of a variable from the contract in the local React state:
-  const purpose = useContractReader(readContracts, "YourContract", "purpose");
-
   // 📟 Listen for broadcast events
   const setNewBookingEvents = useEventListener(readContracts, "FacilityBooking", "NewBooking", localProvider, 1);
 
   const setCancelBookingEvents = useEventListener(readContracts, "FacilityBooking", "CancelBooking", localProvider, 1);
+
+  const setOwnershipTransferredEvents = useEventListener(readContracts, "FacilityBooking", "OwnershipTransferred", localProvider, 1);
+
+  const [owner, setOwner] = useState();
+  const value = {
+    owner,
+    setOwner,
+  }
+  // setOwner(readContracts.FacilityBooking.getOwner());
+  useEffect(async () => {
+    async function getOwnerAddress() {
+      if (readContracts.FacilityBooking) {
+        const newAddress = await readContracts.FacilityBooking.getOwner();
+        setOwner(newAddress);
+      }
+    }
+    getOwnerAddress();
+  }, [setOwnershipTransferredEvents]);
+
+  const [buildingName, setBuildingName] = useState();
+  const [facilityName, setFacilityName] = useState();
+  useEffect(async () => {
+    async function getBuildingName() {
+      if (readContracts.FacilityBooking) {
+        const building = await readContracts.FacilityBooking.getBuildingName();
+        const facility = await readContracts.FacilityBooking.getFacilityNames();
+        setBuildingName(building);
+        setFacilityName(facility);
+      }
+    }
+    getBuildingName();
+  }, [readContracts]);
 
   /*
   const addressFromENS = useResolveName(mainnetProvider, "austingriffith.eth");
@@ -265,6 +296,7 @@ function App(props) {
   //
   // 🧫 DEBUG 👨🏻‍🔬
   //
+  // https://reffect.co.jp/react/react-useeffect-understanding#useEffect
   useEffect(() => {
     if (
       DEBUG &&
@@ -461,78 +493,36 @@ function App(props) {
               }}
               to="/"
             >
+              For Residents
+            </Link>
+          </Menu.Item>
+          <Menu.Item key="/admin">
+            <Link
+              onClick={() => {
+                setRoute("/admin");
+              }}
+              to="/admin"
+            >
+              For Admin
+            </Link>
+          </Menu.Item>
+          {/* <Menu.Item key="/contract">
+            <Link
+              onClick={() => {
+                setRoute("/contract");
+              }}
+              to="/contract"
+            >
               YourContract
             </Link>
-          </Menu.Item>
-          <Menu.Item key="/hints">
-            <Link
-              onClick={() => {
-                setRoute("/hints");
-              }}
-              to="/hints"
-            >
-              Hints
-            </Link>
-          </Menu.Item>
-          <Menu.Item key="/exampleui">
-            <Link
-              onClick={() => {
-                setRoute("/exampleui");
-              }}
-              to="/exampleui"
-            >
-              ExampleUI
-            </Link>
-          </Menu.Item>
-          <Menu.Item key="/mainnetdai">
-            <Link
-              onClick={() => {
-                setRoute("/mainnetdai");
-              }}
-              to="/mainnetdai"
-            >
-              Mainnet DAI
-            </Link>
-          </Menu.Item>
-          <Menu.Item key="/subgraph">
-            <Link
-              onClick={() => {
-                setRoute("/subgraph");
-              }}
-              to="/subgraph"
-            >
-              Subgraph
-            </Link>
-          </Menu.Item>
+          </Menu.Item> */}
         </Menu>
 
         <Switch>
           <Route exact path="/">
-            {/*
-                🎛 this scaffolding is full of commonly used components
-                this <Contract/> component will automatically parse your ABI
-                and give you a form to interact with it locally
-            */}
-
-            <Contract
-              name="FacilityBooking"
-              signer={userSigner}
-              provider={localProvider}
-              address={address}
-              blockExplorer={blockExplorer}
-              contractConfig={contractConfig}
-            />
-          </Route>
-          <Route path="/hints">
-            <Hints
-              address={address}
-              yourLocalBalance={yourLocalBalance}
-              mainnetProvider={mainnetProvider}
-              price={price}
-            />
-          </Route>
-          <Route path="/exampleui">
-            <ExampleUI
+            <BookingUI
+              buildingName={buildingName}
+              facilityName={facilityName}
               address={address}
               userSigner={userSigner}
               mainnetProvider={mainnetProvider}
@@ -545,36 +535,41 @@ function App(props) {
               setCancelBookingEvents={setCancelBookingEvents}
             />
           </Route>
-          <Route path="/mainnetdai">
+          <Route exact path="/admin">
+            <OwnerContext.Provider value={value}>
+              <AdminUI
+                buildingName={buildingName}
+                facilityName={facilityName}
+                address={address}
+                userSigner={userSigner}
+                mainnetProvider={mainnetProvider}
+                localProvider={localProvider}
+                price={price}
+                yourLocalBalance={yourLocalBalance}
+                tx={tx}
+                writeContracts={writeContracts}
+                readContracts={readContracts}
+                setNewBookingEvents={setNewBookingEvents}
+                setCancelBookingEvents={setCancelBookingEvents}
+                setOwnershipTransferredEvents={setOwnershipTransferredEvents}
+              />
+            </OwnerContext.Provider>
+          </Route>
+          {/*
+              🎛 this scaffolding is full of commonly used components
+              this <Contract/> component will automatically parse your ABI
+              and give you a form to interact with it locally
+          */}
+          {/* <Route path="/contract">
             <Contract
-              name="DAI"
-              customContract={mainnetContracts && mainnetContracts.contracts && mainnetContracts.contracts.DAI}
+              name="FacilityBooking"
               signer={userSigner}
-              provider={mainnetProvider}
+              provider={localProvider}
               address={address}
-              blockExplorer="https://etherscan.io/"
+              blockExplorer={blockExplorer}
               contractConfig={contractConfig}
-              chainId={1}
             />
-            {/*
-            <Contract
-              name="UNI"
-              customContract={mainnetContracts && mainnetContracts.contracts && mainnetContracts.contracts.UNI}
-              signer={userSigner}
-              provider={mainnetProvider}
-              address={address}
-              blockExplorer="https://etherscan.io/"
-            />
-            */}
-          </Route>
-          <Route path="/subgraph">
-            <Subgraph
-              subgraphUri={props.subgraphUri}
-              tx={tx}
-              writeContracts={writeContracts}
-              mainnetProvider={mainnetProvider}
-            />
-          </Route>
+          </Route> */}
         </Switch>
       </BrowserRouter>
 

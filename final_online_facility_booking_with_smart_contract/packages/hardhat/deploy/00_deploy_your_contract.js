@@ -5,24 +5,16 @@ const { ethers } = require("hardhat");
 module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
-  // await deploy("YourContract", {
-  //   // Learn more about args here: https://www.npmjs.com/package/hardhat-deploy#deploymentsdeploy
-  //   from: deployer,
-  //   //args: [ "Hello", ethers.utils.parseEther("1.5") ],
-  //   log: true,
-  // });
 
   await deploy("FacilityBooking", {
     // Learn more about args here: https://www.npmjs.com/package/hardhat-deploy#deploymentsdeploy
     from: deployer,
-    // args: [ '1000', 'Tennis'],
     log: true,
   });
 
   /*
     // Getting a previously deployed contract
-    const YourContract = await ethers.getContract("YourContract", deployer);
-    await YourContract.setPurpose("Hello");
+    const YourContract = await ethers.getContract("FacilityBooking", deployer);
   
     To take ownership of yourContract using the ownable library uncomment next line and add the 
     address you want to be the owner. 
@@ -30,6 +22,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
     //const yourContract = await ethers.getContractAt('YourContract', "0xaAC799eC2d00C013f1F11c37E654e59B0429DF6A") //<-- if you want to instantiate a version of a contract at a specific address!
   */
+  // Getting a previously deployed contract
+  // How to use this address with MetaMask
+  const yourContract = await ethers.getContract("FacilityBooking", deployer);
+  await yourContract.transferOwnership("0x6377A64A9E5A59697D38138B7b5B8f24A16c5B83");
 
   /*
   //If you want to send value to an address from the deployer
