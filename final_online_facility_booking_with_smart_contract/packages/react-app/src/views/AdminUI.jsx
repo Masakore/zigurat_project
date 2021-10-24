@@ -7,6 +7,7 @@ import { OwnerContext } from "../App";
 
 import "react-datepicker/dist/react-datepicker.css";
 
+// This view provide admin features
 export default function AdminUI({
   buildingName,
   facilityName,
@@ -20,6 +21,9 @@ export default function AdminUI({
   writeContracts,
   fees,
 }) {
+  /*
+    States
+  */
   const { TabPane } = Tabs;
   const defaultTime = new Date().setHours(9, 0);
   const [startDate, setStartDate] = useState(defaultTime);
@@ -34,10 +38,15 @@ export default function AdminUI({
   const [latestBalance, setLatestBalance] = useState("0");
   const [history, setHistory] = useState([]);
 
-  const dateToTime = new Map();
-  let allUpcomingBooking = [];
+  const dateToTime = new Map(); // Used to identify booked slots on the calendar
+  let allUpcomingBooking = []; // Used to identify upcoing bookings
   const currentTime = new Date();
 
+  /*
+    Functions
+  */
+  // Set all booking slots in dateToTime
+  // and allUpcomingBooking from NewBookingEvents
   const refreshUpcomingBooking = () => setNewBookingEvents.map((item, index) => {
     const address = item.args[1];
     const date = moment(parseInt(item.args[2]._hex)).format("YYYYMMDD");
@@ -60,6 +69,7 @@ export default function AdminUI({
   });
   refreshUpcomingBooking();
 
+  // Remove canceled booking from dateToTime and allUpcomingBooking variables
   const refrechCanceledBooking = () => setCancelBookingEvents.map(item => {
     const date = moment(parseInt(item.args[2]._hex)).format("YYYYMMDD");
     const start = parseInt(item.args[2]._hex);
@@ -86,12 +96,7 @@ export default function AdminUI({
     }
   }
 
-  useEffect(async () => {
-    refreshBalance();
-    refreshUpcomingBooking();
-    // await refrechCanceledBooking();
-  }, [setNewBookingEvents, setCancelBookingEvents]);
-
+  // Fetch all booking information excluding canceled ones
   const getBookingData = async () => {
     if (readContracts.FacilityBooking) {
       let result = await readContracts.FacilityBooking.getBookingData("tennis");
@@ -100,11 +105,13 @@ export default function AdminUI({
     return [];
   };
 
+  // Filter unavailable days
   const filterPassedDate = (time) => {
     const day = moment(time).day();
     return day !== 0 && day !== 6;
   };
 
+  // Filter unavailable times
   const current = new Date();
   const filterPassedTime = time => {
     if (!filterPassedDate(time)) {
@@ -130,7 +137,17 @@ export default function AdminUI({
     return true;
   };
 
+  /*
+    Update State 
+  */
+  // Refresh the account balance at new booking or booking cancelation
+  useEffect(async () => {
+    refreshBalance();
+  }, [setNewBookingEvents, setCancelBookingEvents]);
 
+  /*
+    Error messages 
+  */
   const EndTimeExceedStartError = () => (
     <p style={{ color: "red" }}>The start time cannot exceed the end time!</p>
   )
@@ -139,6 +156,10 @@ export default function AdminUI({
     <p style={{color: "red"}}>You chose a wrong pair of the start and the end slot. Booking time must be future!</p>
   )
 
+  /*
+    Structure
+  */
+  // If the current user is admin, then show below.
   const contractDisplay = (
     <div style={{ paddingBottom: 20 }}>
       <div style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}>
@@ -246,7 +267,7 @@ export default function AdminUI({
 
               const result = tx(
                 writeContracts.FacilityBooking.register(newBookingStart, newBookingEnd, "tennis", {
-                  value: 0,
+                  value: 0, // Booking fee is not required because admin personel is supposed to collect booking fees in some way
                 }),
                 update => {
                 console.log("📡 Transaction Update:", update);
@@ -264,8 +285,7 @@ export default function AdminUI({
                   }
                 },
               );
-              console.log("New Book, awaiting metamask/web3 confirm result...", result);
-              console.log(await result);
+              console.log("New Book, awaiting metamask/web3 confirm result...", await result);
             }}
           >
             Book
@@ -412,6 +432,7 @@ export default function AdminUI({
     </div>
   );
 
+  // If the current user is NOT admin, then show below.
   const noContractDisplay = (
     <div>
       <p style={{ marginTop: 20, color: "red"}}>This is admin page. You must use the contract owner address!</p>

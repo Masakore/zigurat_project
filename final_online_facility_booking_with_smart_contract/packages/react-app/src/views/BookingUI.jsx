@@ -17,6 +17,9 @@ export default function BookingUI({
   writeContracts,
   fees,
 }) {
+  /*
+    States
+  */
   const { TabPane } = Tabs;
   const defaultTime = new Date().setHours(9, 0);
   const [startDate, setStartDate] = useState(defaultTime);
@@ -27,9 +30,15 @@ export default function BookingUI({
   const [endTimeExceedStartError, setEndTimeExceedStartError] = useState(false);
   const [oldDateSelectedError, setOldDateSelectedError] = useState(false);
   const [refundAmount, setRefundAmount] = useState(0.0);
-  const dateToTime = new Map();
-  const addressToBooking = new Map();
 
+  const dateToTime = new Map(); // Used to identify booked slots on the calendar
+  const addressToBooking = new Map(); // Used to identify upcoing bookings
+
+  /*
+    Functions
+  */
+  // Set all booking slots in dateToTime
+  // and allUpcomingBooking from NewBookingEvents
   const refreshUpcomingBooking = () => setNewBookingEvents.map(item => {
     const bookerAddress = item.args[1];
     const date = moment(parseInt(item.args[2]._hex)).format("YYYYMMDD");
@@ -57,6 +66,7 @@ export default function BookingUI({
   });
   refreshUpcomingBooking();
 
+  // Remove canceled booking from dateToTime and allUpcomingBooking variables
   const refrechCanceledBooking = () => setCancelBookingEvents.map(item => {
     const bookerAddress = item.args[1];
     const date = moment(parseInt(item.args[2]._hex)).format("YYYYMMDD");
@@ -93,15 +103,13 @@ export default function BookingUI({
     return 0;
   }
 
-  useEffect(async () => {
-    getRefundAmount();
-  }, [setNewBookingEvents, setCancelBookingEvents]);
-
+  // Filter unavailable days
   const filterPassedDate = time => {
     const day = moment(time).day();
     return day !== 0 && day !== 6;
   };
 
+  // Filter unavailable times
   const currentTime = new Date();
   const filterPassedTime = time => {
     if (!filterPassedDate(time)) {
@@ -128,6 +136,17 @@ export default function BookingUI({
     return true;
   };
 
+  /*
+    Update State 
+  */
+  // Refresh the refundable amount of the current user
+  useEffect(async () => {
+    getRefundAmount();
+  }, [setNewBookingEvents, setCancelBookingEvents]);
+
+  /*
+    Error messages 
+  */
   const EndTimeExceedStartError = () => (
     <p style={{ color: "red" }}>The start time cannot exceed the end time!</p>
   )
@@ -136,6 +155,9 @@ export default function BookingUI({
     <p style={{color: "red"}}>You chose a wrong pair of the start and the end slot. Booking time must be future!</p>
   );
 
+  /*
+    Structure
+  */
   return (
     <div style={{ paddingBottom: 20 }}>
       <div style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}>
@@ -227,7 +249,10 @@ export default function BookingUI({
               setOldDateSelectedError(false);
               setEndTimeExceedStartError(false);
 
-              const numOfSlots = (newBookingEnd - newBookingStart) / (30 * 60 * 1000);
+              // Here's booking fee calculatioon logic
+              // calculate the number of slots from start to end time which are passed in millisecond
+              const thirtyMinsInMsec =  30 * 60 * 1000;
+              const numOfSlots = (newBookingEnd - newBookingStart) / thirtyMinsInMsec; // end, start time passed in millisecond
               const feePerSlot = 1000000000000000; // in wei(~=0.001 ether)
               const fee = numOfSlots * feePerSlot;
               const result = tx(

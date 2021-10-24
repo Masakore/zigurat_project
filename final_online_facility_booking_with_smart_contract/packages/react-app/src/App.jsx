@@ -251,6 +251,10 @@ function App(props) {
   const myMainnetDAIBalance = useContractReader(mainnetContracts, "DAI", "balanceOf", [
     "0x34aA3F359A9D614239015126635CE7732c18fDF3",
   ]);
+
+  /*
+    Event listener for FacilityBooking.sol
+  */
   // 📟 Listen for broadcast events
   const setNewBookingEvents = useEventListener(readContracts, "FacilityBooking", "NewBooking", localProvider, 1);
 
@@ -263,7 +267,6 @@ function App(props) {
     owner,
     setOwner,
   }
-  // setOwner(readContracts.FacilityBooking.getOwner());
   useEffect(async () => {
     async function getOwnerAddress() {
       if (readContracts.FacilityBooking) {
@@ -287,6 +290,10 @@ function App(props) {
     }
     return 0;
   }
+
+  /*
+    Update contract parameters from FacilityBooking.sol
+  */ 
   useEffect(async () => {
     async function getContractParams() {
       if (readContracts.FacilityBooking) {
@@ -492,13 +499,16 @@ function App(props) {
     );
   }
 
+  /*
+    Main Structure
+  */
   return (
     <div className="App">
-      {/* ✏️ Edit the header and change the title to your project name */}
       <Header />
       {networkDisplay}
       <BrowserRouter>
         <Menu style={{ textAlign: "center" }} selectedKeys={[route]} mode="horizontal">
+          {/* Resident page */}
           <Menu.Item key="/">
             <Link
               onClick={() => {
@@ -509,6 +519,7 @@ function App(props) {
               For Residents
             </Link>
           </Menu.Item>
+          {/* Admin page */}
           <Menu.Item key="/admin">
             <Link
               onClick={() => {
@@ -519,19 +530,10 @@ function App(props) {
               For Admin
             </Link>
           </Menu.Item>
-          {/* <Menu.Item key="/contract">
-            <Link
-              onClick={() => {
-                setRoute("/contract");
-              }}
-              to="/contract"
-            >
-              YourContract
-            </Link>
-          </Menu.Item> */}
         </Menu>
 
         <Switch>
+          {/* parameters for resident page*/}
           <Route exact path="/">
             <BookingUI
               buildingName={buildingName}
@@ -549,6 +551,7 @@ function App(props) {
               fees={fees}
             />
           </Route>
+          {/* parameters for admin page*/}
           <Route exact path="/admin">
             <OwnerContext.Provider value={value}>
               <AdminUI
@@ -570,21 +573,6 @@ function App(props) {
               />
             </OwnerContext.Provider>
           </Route>
-          {/*
-              🎛 this scaffolding is full of commonly used components
-              this <Contract/> component will automatically parse your ABI
-              and give you a form to interact with it locally
-          */}
-          {/* <Route path="/contract">
-            <Contract
-              name="FacilityBooking"
-              signer={userSigner}
-              provider={localProvider}
-              address={address}
-              blockExplorer={blockExplorer}
-              contractConfig={contractConfig}
-            />
-          </Route> */}
         </Switch>
       </BrowserRouter>
 
