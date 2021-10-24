@@ -1,26 +1,22 @@
-# 🏗 Scaffold-ETH
+# Low-cost online booking solution using Smart Contract
+We set out to determine whether, with recent blockchain innovations, it is possible to provide an affordable online facility booking solution to small to middle-sized residential management companies. The existing solution on the market seems to target large-sized condominium management companies. As facility booking is not the primary operation of residential management, it is hard to justify introducing a new system economically.  
 
-> everything you need to build on Ethereum! 🚀
-
-🧪 Quickly experiment with Solidity using a frontend that adapts to your smart contract:
-
-![image](https://user-images.githubusercontent.com/2653167/124158108-c14ca380-da56-11eb-967e-69cde37ca8eb.png)
-
+Building an application utilizing blockchain technologies with widely available digital payment systems can help to reduce software development and operation costs. Therefore, there is a chance to offer an affordable facility booking system fitting those limited budget entities. I will explore the possibility. In this project, I provided a sample implementation of the online facility booking system. This could have never happened without `Sacffold-ETH`. Big thanks!
 
 # 🏄‍♂️ Quick Start
 
 Prerequisites: [Node](https://nodejs.org/en/download/) plus [Yarn](https://classic.yarnpkg.com/en/docs/install/) and [Git](https://git-scm.com/downloads)
 
-> clone/fork 🏗 scaffold-eth:
+> clone/fork:
 
 ```bash
-git clone https://github.com/austintgriffith/scaffold-eth.git
+git clone https://github.com/Masakore/zigurat_project.git
 ```
 
 > install and start your 👷‍ Hardhat chain:
 
 ```bash
-cd scaffold-eth
+cd zigurat_project/final_online_facility_booking_with_smart_contract
 yarn install
 yarn chain
 ```
@@ -28,24 +24,34 @@ yarn chain
 > in a second terminal window, start your 📱 frontend:
 
 ```bash
-cd scaffold-eth
+cd zigurat_project/final_online_facility_booking_with_smart_contract
 yarn start
 ```
 
 > in a third terminal window, 🛰 deploy your contract:
 
 ```bash
-cd scaffold-eth
+cd zigurat_project/final_online_facility_booking_with_smart_contract
 yarn deploy
 ```
 
-🔏 Edit your smart contract `YourContract.sol` in `packages/hardhat/contracts`
-
-📝 Edit your frontend `App.jsx` in `packages/react-app/src`
-
-💼 Edit your deployment scripts in `packages/hardhat/deploy`
-
 📱 Open http://localhost:3000 to see the app
+
+# 💎 Main Program Files
+
+🔏 Smart contract: `FacilityBooking.sol` in `packages/hardhat/contracts`  
+
+📝 Main Frontend code: `App.jsx` in `packages/react-app/src`, `AdminUI.jsx` and `BookingUI.jsx` in `packages/react-app/src/views`  
+
+💼 Edit your deployment scripts: `00_deploy_your_contract.js` in `packages/hardhat/deploy`  
+
+# 🏗 Scaffold-ETH
+
+> everything you need to build on Ethereum! 🚀
+
+🧪 Quickly experiment with Solidity using a frontend that adapts to your smart contract:
+
+![image](https://user-images.githubusercontent.com/2653167/124158108-c14ca380-da56-11eb-967e-69cde37ca8eb.png)
 
 # 📚 Documentation
 
@@ -87,7 +93,7 @@ Check out all the [active branches](https://github.com/austintgriffith/scaffold-
  - ⚖️  [Learn how a simple DEX works](https://medium.com/@austin_48503/%EF%B8%8F-minimum-viable-exchange-d84f30bd0c90)
  - 🦍  [Ape into learning!](https://github.com/austintgriffith/scaffold-eth/tree/aave-ape)
 
-# 💬 Support Chat
+# 💬 Support Chat Of Scaffold-ETH
 
 Join the telegram [support chat 💬](https://t.me/joinchat/KByvmRe5wkR-8F_zz6AjpA) to ask questions and find others building with 🏗 scaffold-eth!
 

@@ -1,13 +1,10 @@
-import { SyncOutlined } from "@ant-design/icons";
 import { utils } from "ethers";
-import { Button, Card, Divider, Input, List, Progress, Slider, Spin, Switch, Tabs } from "antd";
+import { Button, Divider, List, Tabs } from "antd";
 import React, { useState, useEffect } from "react";
-import { Address, Balance } from "../components";
 import moment from "moment";
 import DatePicker from "react-datepicker";
 
 import "react-datepicker/dist/react-datepicker.css";
-import { isNonEmptyArray } from "@apollo/client/utilities";
 
 export default function BookingUI({
   buildingName,
@@ -18,6 +15,7 @@ export default function BookingUI({
   tx,
   readContracts,
   writeContracts,
+  fees,
 }) {
   const { TabPane } = Tabs;
   const defaultTime = new Date().setHours(9, 0);
@@ -28,8 +26,9 @@ export default function BookingUI({
   const [newBookingEnd, setNewBookingEnd] = useState(new Date(defaultTime).getTime());
   const [endTimeExceedStartError, setEndTimeExceedStartError] = useState(false);
   const [oldDateSelectedError, setOldDateSelectedError] = useState(false);
-  const [dateToTime, setDateToTime] = useState(new Map());
-  const [addressToBooking, setAddressToBooking] = useState(new Map());
+  const [refundAmount, setRefundAmount] = useState(0.0);
+  const dateToTime = new Map();
+  const addressToBooking = new Map();
 
   const refreshUpcomingBooking = () => setNewBookingEvents.map(item => {
     const bookerAddress = item.args[1];
@@ -37,24 +36,26 @@ export default function BookingUI({
     const start = parseInt(item.args[2]._hex);
     const end = parseInt(item.args[3]._hex);
     if (!dateToTime.has(date)) {
-      setDateToTime(new Map(dateToTime.set(date, [[start, end]])));
+      dateToTime.set(date, [[start, end]]);
     } else {
       let existingDates = dateToTime.get(date);
       existingDates = existingDates.filter(time => !(time[0] < end && time[1] > start));
-      setDateToTime(new Map(dateToTime.set(date, [...existingDates, [start, end]])));
+      dateToTime.set(date, [...existingDates, [start, end]]);
     }
 
     if (bookerAddress != address) {
       return;
     }
-    if (!addressToBooking.has(address)) {
-      setAddressToBooking(new Map(addressToBooking.set(address, [[start, end]])));
+
+    if (!addressToBooking.has(bookerAddress)) {
+      addressToBooking.set(bookerAddress, [[start, end]]);
     } else {
-      let existingDates = addressToBooking.get(address);
+      let existingDates = addressToBooking.get(bookerAddress);
       existingDates = existingDates.filter(time => !(time[0] < end && time[1] > start));
-      setAddressToBooking(new Map(addressToBooking.set(address, [...existingDates, [start, end]])));
+      addressToBooking.set(bookerAddress, [...existingDates, [start, end]]);
     }
   });
+  refreshUpcomingBooking();
 
   const refrechCanceledBooking = () => setCancelBookingEvents.map(item => {
     const bookerAddress = item.args[1];
@@ -65,21 +66,35 @@ export default function BookingUI({
     if (dateToTime.has(date)) {
       let existingDates = dateToTime.get(date);
       existingDates = existingDates.filter(time => !(time[0] < end && time[1] > start));
-      setDateToTime(new Map(dateToTime.set(date, [...existingDates])));
+      dateToTime.set(date, [...existingDates]);
+    }
+
+    if (bookerAddress != address) {
+      return;
     }
 
     if (addressToBooking.has(bookerAddress)) {
       let existingDates = addressToBooking.get(bookerAddress);
       existingDates = existingDates.filter(time => !(time[0] < end && time[1] > start))
-      setAddressToBooking(new Map(addressToBooking.set(bookerAddress, [...existingDates])));
+      addressToBooking.set(bookerAddress, [...existingDates]);
     }
   });
+  refrechCanceledBooking();
+
+  const getRefundAmount = async () => {
+    if (readContracts.FacilityBooking) {
+      let result = await readContracts.FacilityBooking.getRefundAmount(address);
+      const etherBalance = utils.formatEther(result);
+      parseFloat(etherBalance).toFixed(2);
+      const floatBalance = parseFloat(etherBalance);
+
+      setRefundAmount(floatBalance);
+    }
+    return 0;
+  }
 
   useEffect(async () => {
-    await refreshUpcomingBooking();
-    await refrechCanceledBooking();
-    await console.log("dateToTime map after applying canceled booking:", JSON.stringify(dateToTime));
-    await console.log("addressToBooking after applying canceled booking:", JSON.stringify(addressToBooking[address]));
+    getRefundAmount();
   }, [setNewBookingEvents, setCancelBookingEvents]);
 
   const filterPassedDate = time => {
@@ -126,6 +141,7 @@ export default function BookingUI({
       <div style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}>
         <h2>{buildingName}</h2>
         <div style={{ fontSize: 20 }}>Facility: {facilityName}</div>
+        <div style={{ fontSize: 15 }}>booking fee per slot: {fees} ETH</div>
         <Divider />
         <h2>Select date and time</h2>
         <div>
@@ -208,8 +224,12 @@ export default function BookingUI({
                 setEndTimeExceedStartError(true);
                 return;
               }
+              setOldDateSelectedError(false);
+              setEndTimeExceedStartError(false);
 
-              const fee = 1000 * ((newBookingEnd - newBookingStart) / (30 * 60 * 1000));
+              const numOfSlots = (newBookingEnd - newBookingStart) / (30 * 60 * 1000);
+              const feePerSlot = 1000000000000000; // in wei(~=0.001 ether)
+              const fee = numOfSlots * feePerSlot;
               const result = tx(
                 writeContracts.FacilityBooking.register(newBookingStart, newBookingEnd, "tennis", {
                   value: fee,
@@ -282,7 +302,36 @@ export default function BookingUI({
                 }}
               />
             </TabPane>
-            <TabPane tab="History" key="2">
+            <TabPane tab="Refund" key="2">
+              <h2>Refund Your Canceled Booking Fee</h2>
+              <div>Total amount: {refundAmount} ETH</div>
+              <div style={{ margin: 8 }}>
+                <Button
+                  style={{ marginTop: 8 }}
+                  onClick={async () => {
+                    const result = tx(writeContracts.FacilityBooking.refund(), update => {
+                      console.log("📡 Transaction Update:", update);
+                      if (update && (update.status === "confirmed" || update.status === 1)) {
+                        console.log(" 🍾 Transaction " + update.hash + " finished!");
+                        console.log(
+                          " ⛽️ " +
+                            update.gasUsed +
+                            "/" +
+                            (update.gasLimit || update.gas) +
+                            " @ " +
+                            parseFloat(update.gasPrice) / 1000000000 +
+                            " gwei",
+                        );
+                      }
+                    });
+                    console.log("Transfer ownership, awaiting metamask/web3 confirm result...", await result);
+                  }}
+                  >
+                  Refund 
+                </Button>
+              </div>
+            </TabPane>
+            <TabPane tab="History" key="3">
               <h2>History</h2>
               <List
                 bordered

@@ -1,13 +1,11 @@
-import { utils } from "ethers";
-import { Button, Card, Divider, Input, List, Progress, Slider, Spin, Switch, Tabs, Row, Col } from "antd";
-import React, { useState, useEffect, useContext, useLayoutEffect } from "react";
-import { Account, Address, Balance } from "../components";
+import { Button, Divider, Input, List, Tabs } from "antd";
+import React, { useState, useEffect, useContext } from "react";
+import { Address, Balance } from "../components";
 import moment from "moment";
 import DatePicker from "react-datepicker";
 import { OwnerContext } from "../App";
 
 import "react-datepicker/dist/react-datepicker.css";
-import { isNonEmptyArray } from "@apollo/client/utilities";
 
 export default function AdminUI({
   buildingName,
@@ -20,6 +18,7 @@ export default function AdminUI({
   tx,
   readContracts,
   writeContracts,
+  fees,
 }) {
   const { TabPane } = Tabs;
   const defaultTime = new Date().setHours(9, 0);
@@ -33,62 +32,52 @@ export default function AdminUI({
   const { owner, setOwner } = useContext(OwnerContext);
   const [newOwner, setNewOwner] = useState();
   const [latestBalance, setLatestBalance] = useState("0");
-  const [dateToTime, setDateToTime] = useState(new Map());
-  const [allUpcomingBooking, setAllUpcomingBooking] = useState([]);
   const [history, setHistory] = useState([]);
+
+  const dateToTime = new Map();
+  let allUpcomingBooking = [];
   const currentTime = new Date();
 
-  const refreshUpcomingBooking = () => setNewBookingEvents.map(item => {
+  const refreshUpcomingBooking = () => setNewBookingEvents.map((item, index) => {
     const address = item.args[1];
     const date = moment(parseInt(item.args[2]._hex)).format("YYYYMMDD");
     const start = parseInt(item.args[2]._hex);
     const end = parseInt(item.args[3]._hex);
     if (!dateToTime.has(date)) {
-      setDateToTime(new Map(dateToTime.set(date, [[start, end]])));
+      dateToTime.set(date, [[start, end]]);
     } else {
       let existingDates = dateToTime.get(date);
       existingDates = existingDates.filter(time => !(time[0] < end && time[1] > start));
-      setDateToTime(new Map(dateToTime.set(date, [...existingDates, [start, end]])));
+      dateToTime.set(date, [...existingDates, [start, end]]);
     }
 
     if (start < currentTime) {
       return;
     }
 
-      setAllUpcomingBooking([...allUpcomingBooking, [start, end, address]]);
-    // if (!allUpcomingBooking) {
-    //   // Timing issue. Sometimes allUpcomingBooking is not initialized before coming here
-    // // } else if (allUpcomingBooking.length == 0) {
-    // //   setAllUpcomingBooking(new Array(allUpcomingBooking.push([start, end, address])));
-    // } else {
-    //   // const filtered = allUpcomingBooking.filter(time => !(time[0] < end && time[1] > start));
-    //   setAllUpcomingBooking([...allUpcomingBooking, [start, end, address]]);
-    //   // console.log("中です1", filtered)
-    //   console.log("中です2", allUpcomingBooking)
-    // }
+    let filtered = allUpcomingBooking.filter(time => !(time[1] == end && time[0] == start));
+    allUpcomingBooking = [...filtered, [start, end, address]];
   });
+  refreshUpcomingBooking();
 
   const refrechCanceledBooking = () => setCancelBookingEvents.map(item => {
     const date = moment(parseInt(item.args[2]._hex)).format("YYYYMMDD");
     const start = parseInt(item.args[2]._hex);
     const end = parseInt(item.args[3]._hex);
-    let tmpDateToTime = dateToTime;
-    if (tmpDateToTime[date]) {
-      tmpDateToTime[date] = tmpDateToTime[date].filter(time => !(time[0] < end && time[1] > start));
+
+    if (dateToTime.has(date)) {
+      let existingDates = dateToTime.get(date);
+      existingDates = existingDates.filter(time => !(time[0] < end && time[1] > start));
+      dateToTime.set(date, [...existingDates]);
     }
-    setDateToTime(tmpDateToTime);
     
-    // let tmpAllUpcomingBooking = allUpcomingBooking;
-    // if (start > currentTime) {
-    //   tmpAllUpcomingBooking = tmpAllUpcomingBooking.filter(time => !(time[0] < end && time[1] > start));
-    // }
-    // setAllUpcomingBooking(tmpAllUpcomingBooking)
-    if (start > currentTime) {
-      let filtered = allUpcomingBooking.filter(time => !(time[0] < end && time[1] > start));
-      console.log("filter worked?", filtered)
-      setAllUpcomingBooking([...filtered]);
+    if (start < currentTime) {
+      return;
     }
+
+    allUpcomingBooking = allUpcomingBooking.filter(time => !(time[0] < end && time[1] > start));
   });
+  refrechCanceledBooking();
 
   const refreshBalance = async () => {
     if (owner && owner == address && writeContracts.FacilityBooking) {
@@ -98,8 +87,8 @@ export default function AdminUI({
   }
 
   useEffect(async () => {
-    await refreshBalance();
-    await refreshUpcomingBooking();
+    refreshBalance();
+    refreshUpcomingBooking();
     // await refrechCanceledBooking();
   }, [setNewBookingEvents, setCancelBookingEvents]);
 
@@ -155,6 +144,7 @@ export default function AdminUI({
       <div style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}>
         <h2>{buildingName}</h2>
         <div style={{ fontSize: 20 }}>Facility: {facilityName}</div>
+        <div style={{ fontSize: 15 }}>booking fee per slot: {fees} ETH</div>
         <Divider />
         <div>
           <div>
@@ -243,8 +233,7 @@ export default function AdminUI({
           <Button
             style={{ marginTop: 8 }}
             onClick={async () => {
-              const current = new Date();
-              if (bookingStartDisplay < current || bookingEndDisplay < current) {
+              if (bookingStartDisplay < currentTime || bookingEndDisplay < currentTime) {
                 setOldDateSelectedError(true);
                 return;
               }
@@ -252,11 +241,12 @@ export default function AdminUI({
                 setEndTimeExceedStartError(true);
                 return;
               }
+              setOldDateSelectedError(false);
+              setEndTimeExceedStartError(false);
 
-              const fee = 1000 * ((newBookingEnd - newBookingStart) / (30 * 60 * 1000));
               const result = tx(
                 writeContracts.FacilityBooking.register(newBookingStart, newBookingEnd, "tennis", {
-                  value: 1000,
+                  value: 0,
                 }),
                 update => {
                 console.log("📡 Transaction Update:", update);

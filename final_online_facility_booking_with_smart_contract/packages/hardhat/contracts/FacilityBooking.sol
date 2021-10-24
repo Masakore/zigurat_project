@@ -15,7 +15,7 @@ contract FacilityBooking is Ownable {
     string building_name = "Riverside Residence";
     
     string[] facilities = ["tennis"];
-    uint[] fees = [1000];
+    uint[] fees = [0.001 ether]; // Gwei 
 
     struct BookingData {
         uint bookingStart;
@@ -36,6 +36,7 @@ contract FacilityBooking is Ownable {
     event NewBooking(string facility, address resident, uint start, uint end);
     event CancelBooking(string facility, address resident, uint start, uint end, bool byAdmin);
     event Withdrawal(address admin, uint amount);
+
     error WrongFee(string facility, address resident, uint start, uint end, uint fee, uint required);
     error AlreadyTaken(string facility, address resident, uint start, uint end);
 
@@ -58,10 +59,10 @@ contract FacilityBooking is Ownable {
         returns (bool)
         {
             if (owner() != msg.sender) {
-                uint diff = (_end - _start) / (30 * 60 * 1000);
-                uint required = facilityData[_facility].fee * diff;
+                uint numOfSlots = (_end - _start) / (30 * 60 * 1000);
+                uint required = facilityData[_facility].fee * numOfSlots;
                 if (msg.value != required)
-                    revert WrongFee(_facility, msg.sender, _start, _end, msg.value, facilityData[_facility].fee * diff);
+                    revert WrongFee(_facility, msg.sender, _start, _end, msg.value, required);
             } 
 
             uint current = block.timestamp;
@@ -136,12 +137,20 @@ contract FacilityBooking is Ownable {
         require(success, "Failed to send the amount");
     }
 
+    function getRefundAmount(address _resident) external view returns (uint){
+        return refunds[_resident];
+    }
+
     function getFacilityNames() external view returns (string memory){
-        return facilities[0];
+        return facilities[0]; // temporally return the first facility name
     }
 
     function getBuildingName() external view returns (string memory){
         return building_name;
+    }
+
+    function getFees(string calldata _facility) external view returns (uint){
+        return facilityData[_facility].fee;
     }
 
     function getOwner() external view returns (address){

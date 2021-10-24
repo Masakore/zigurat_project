@@ -276,16 +276,29 @@ function App(props) {
 
   const [buildingName, setBuildingName] = useState();
   const [facilityName, setFacilityName] = useState();
+  const [fees, setFees] = useState();
+  const updateFees = async (_facility) => {
+    if (readContracts.FacilityBooking) {
+      const result = await readContracts.FacilityBooking.getFees(_facility);
+      const etherBalance = ethers.utils.formatEther(result);
+      parseFloat(etherBalance).toFixed(2);
+      const floatBalance = parseFloat(etherBalance);
+      return floatBalance;
+    }
+    return 0;
+  }
   useEffect(async () => {
-    async function getBuildingName() {
+    async function getContractParams() {
       if (readContracts.FacilityBooking) {
         const building = await readContracts.FacilityBooking.getBuildingName();
         const facility = await readContracts.FacilityBooking.getFacilityNames();
+        const fees = await updateFees("tennis");
         setBuildingName(building);
         setFacilityName(facility);
+        setFees(fees);
       }
     }
-    getBuildingName();
+    getContractParams();
   }, [readContracts]);
 
   /*
@@ -533,6 +546,7 @@ function App(props) {
               readContracts={readContracts}
               setNewBookingEvents={setNewBookingEvents}
               setCancelBookingEvents={setCancelBookingEvents}
+              fees={fees}
             />
           </Route>
           <Route exact path="/admin">
@@ -552,6 +566,7 @@ function App(props) {
                 setNewBookingEvents={setNewBookingEvents}
                 setCancelBookingEvents={setCancelBookingEvents}
                 setOwnershipTransferredEvents={setOwnershipTransferredEvents}
+                fees={fees}
               />
             </OwnerContext.Provider>
           </Route>
