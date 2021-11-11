@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Your wallet</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script>
+    $(function () {
+      let data = { 'wallet_id': '{{ init_id }}' };
+      $.ajax({
+        url: '/wallet',
+        type: 'GET',
+        contentType: 'application/json; charset=utf-8',
+        dataType: 'json',
+        data: data,
+        success: function (response) {
+          $('#wallet_id').html(response['wallet_id']);
+          $('#public_key').val(response['public_key']);
+          $('#private_key').val(response['private_key']);
+          $('#password').val(response['password']);
+        },
+        error: function (response) {
+          $.ajax({
+            url: '/wallet',
+            type: 'POST',
+            contentType: 'application/json',
+            dataType: 'json',
+            data: JSON.stringify(data),
+            success: function (response) {
+              $('#wallet_id').html(response['wallet_id']);
+              $('#public_key').val(response['public_key']);
+              $('#private_key').val(response['private_key']);
+              $('#password').val(response['password']);
+              console.info(response);
+            },
+            error: function (error) {
+              console.error(error);
+            }
+          })
+        }
+
+      })
+
+      $('#send_money_button').click(function () {
+        let confirm_text = 'Are you sure to send?';
+        let confirm_result = confirm(confirm_text);
+        if (confirm_result !== true) {
+            alert('Canceled');
+            return
+        }
+
+        let data = {
+            'wallet_id': document.getElementById('wallet_id').innerHTML,
+            'recipient_public_key': $('#recipient_public_key').val(),
+            'message': parseFloat($('#send_amount').val())
+        };
+
+        $.ajax({
+            url: '/send_money',
+            type: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            data: JSON.stringify(data),
+            success: function (response) {
+                alert('Send success')
+            },
+            error: function (response) {
+                alert('Send failed', response)
+            }
+        })
+      })
+
+      $('#reload_wallet').click(function () {
+        let data = {
+            'wallet_id': document.getElementById('wallet_id').innerHTML
+        };
+
+        $.ajax({
+            url: '/get_balance',
+            type: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            data: JSON.stringify(data),
+            success: function (response) {
+                $('#wallet_amount').html(response['amount']);
+            },
+            error: function (response) {
+                alert('Failed to get a balance', error)
+            }
+        })
+
+      })
+    })
+  </script>
+ </head>
+ <body>
+   <div>
+    <h1>Wallet</h1>
+    <p>Wallet ID</p>
+    <div id="wallet_id">[wallet id to be displaed]</div>
+    <p>Balance</p>
+    <div id="wallet_amount">0</div>
+    <button id="reload_wallet">Get Balance</button>
+
+    <p>Public Key</p>
+    <textarea id="public_key" rows="10" cols="100"></textarea>
+    <textarea id="private_key" rows="10" cols="100" hidden></textarea>
+   </div>
+  <div>
+    <h1>Send Money</h1>
+    <div>
+      <p>Address:</p> 
+      <textarea id="recipient_public_key" rows="10" cols="100"></textarea>
+      <p>Amount: </p>
+      <input id="send_amount" type="text"><br>
+      <input id="password" type="text" hidden><br>
+      <button id="send_money_button">Send</button>
+    </div>
+  </div>
+ </body>
+</html>
